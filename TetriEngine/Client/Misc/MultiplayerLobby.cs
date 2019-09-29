@@ -14,6 +14,16 @@ namespace TetriEngine.Client
     internal class MultiplayerLobby : ILobby
     {
         /// <summary>
+        /// Game manager
+        /// </summary>
+        private GameManager gameManager;
+
+        /// <summary>
+        /// User
+        /// </summary>
+        private User user;
+
+        /// <summary>
         /// Server user
         /// </summary>
         private static readonly IUser serverUser = new User(0, "Server");
@@ -21,12 +31,7 @@ namespace TetriEngine.Client
         /// <summary>
         /// Users
         /// </summary>
-        private readonly Pool<User> users;
-
-        /// <summary>
-        /// Winlist
-        /// </summary>
-        public Winlist winlist;
+        private readonly Pool<IUser> users;
 
         /// <summary>
         /// Chat messages
@@ -56,7 +61,7 @@ namespace TetriEngine.Client
         /// <summary>
         /// User
         /// </summary>
-        public IUser User { get; private set; }
+        public IUser User => user;
 
         /// <summary>
         /// Chat messages and actions
@@ -66,12 +71,17 @@ namespace TetriEngine.Client
         /// <summary>
         /// Level
         /// </summary>
-        public ILevel Level { get; private set; }
+        public IGameManager GameManager => gameManager;
+
+        /// <summary>
+        /// Users
+        /// </summary>
+        public IReadOnlyPool<IUser> Users => users;
 
         /// <summary>
         /// Winlist
         /// </summary>
-        public IWinlist Winlist => winlist;
+        public Winlist Winlist { get; private set; }
 
         /// <summary>
         /// On client joined event
@@ -121,7 +131,7 @@ namespace TetriEngine.Client
         /// <summary>
         /// On game chat message received event
         /// </summary>
-        public event GameChatReceivedDelegate OnGameChatReceived;
+        public event GameChatMessageReceivedDelegate OnGameChatMessageReceived;
 
         /// <summary>
         /// On new game started event
@@ -215,7 +225,7 @@ namespace TetriEngine.Client
         internal MultiplayerLobby(ClientConnection clientConnection)
         {
             this.clientConnection = clientConnection;
-            users = new Pool<User>(0, MaxUsers);
+            users = new Pool<IUser>(0, MaxUsers);
             clientConnection.OnClientJoined += ClientJoinedEvent;
             clientConnection.OnUserJoined += UserJoinedEvent;
             clientConnection.OnUserLeft += UserLeftEvent;
@@ -225,13 +235,13 @@ namespace TetriEngine.Client
             clientConnection.OnUserChatMessageReceived += UserChatMessageReceivedEvent;
             clientConnection.OnServerChatActionReceived += ServerChatActionReceivedEvent;
             clientConnection.OnUserChatActionReceived += UserChatActionReceivedEvent;
-            clientConnection.OnGameChatReceived += GameChatReceivedEvent;
+            clientConnection.OnGameChatMessageReceived += GameChatReceivedEvent;
             clientConnection.OnNewGameStarted += NewGameStartedEvent;
             clientConnection.OnGameIsAlreadyInProgress += GameIsAlreadyInProgressEvent;
             clientConnection.OnRequestClientInformation += RequestClientInformationEvent;
             clientConnection.OnUserLevelUpdate += UserLevelUpdateEvent;
             clientConnection.OnClassicModeAddLines += ClassicModeAddLinesEvent;
-            clientConnection.OnSpecialUsedForAll += SpecialUsedForAllEvent;
+            clientConnection.OnServerSpecialUsedForAll += SpecialUsedForAllEvent;
             clientConnection.OnUserSpecialUsedForAll += UserSpecialUsedForAllEvent;
             clientConnection.OnServerSpecialUsed += ServerSpecialUsedEvent;
             clientConnection.OnUserSpecialUsed += UserSpecialUsedEvent;
@@ -241,7 +251,7 @@ namespace TetriEngine.Client
             clientConnection.OnResumeGame += ResumeGameEvent;
             clientConnection.OnEndGame += EndGameEvent;
             clientConnection.OnConnectionDenied += ConnectionDeniedEvent;
-            clientConnection.OnHeartBeat += HeartBeatEvent;
+            clientConnection.OnHeartBeatReceived += HeartBeatEvent;
             clientConnection.OnUserFullFieldUpdate += UserFullFieldUpdateEvent;
             clientConnection.OnUserPartialFieldUpdate += UserPartialFieldUpdateEvent;
         }
@@ -250,15 +260,15 @@ namespace TetriEngine.Client
         /// Client joined event
         /// </summary>
         /// <param name="userID">User ID</param>
-        /// <param name="username">Username</param>
-        private void ClientJoinedEvent(int userID, string username)
+        /// <param name="protocol">Protocol</param>
+        private void ClientJoinedEvent(int userID, EProtocol protocol)
         {
-            if (User == null)
+            if (user == null)
             {
-                User user = new User(userID, username);
-                User = user;
+                User user = new User(userID, clientConnection.Username);
                 if (users.Insert(user, userID))
                 {
+                    this.user = user;
                     OnClientJoined?.Invoke(User);
                 }
             }
@@ -271,9 +281,9 @@ namespace TetriEngine.Client
         /// <param name="username">Username</param>
         private void UserJoinedEvent(int userID, string username)
         {
-            if (User != null)
+            if (user != null)
             {
-                if (User.ID != userID)
+                if (user.ID != userID)
                 {
                     User user = new User(userID, username);
                     if (users.Insert(user, userID))
@@ -290,9 +300,9 @@ namespace TetriEngine.Client
         /// <param name="userID">User ID</param>
         private void UserLeftEvent(int userID)
         {
-            if (User != null)
+            if (user != null)
             {
-                if ((User.ID != userID) && (users.IsIDValid(userID)))
+                if ((user.ID != userID) && (users.IsIDValid(userID)))
                 {
                     IUser user = users[userID];
                     if (users.Remove(userID))
@@ -312,10 +322,15 @@ namespace TetriEngine.Client
         {
             if (users.IsIDValid(userID))
             {
-                User user = users[userID];
-                string old_team_name = user.TeamName;
-                user.TeamName = newTeamName;
-                OnUserTeamNameChanged?.Invoke(user, old_team_name, newTeamName);
+                IHostUser user = users[userID] as IHostUser;
+                if (user != null)
+                {
+                    string old_team_name = user.TeamName;
+                    if (user.SetTeamName(newTeamName))
+                    {
+                        OnUserTeamNameChanged?.Invoke(user, old_team_name, newTeamName);
+                    }
+                }
             }
         }
 
@@ -325,12 +340,12 @@ namespace TetriEngine.Client
         /// <param name="winlist">Winlist</param>
         private void WinlistReceivedEvent(WinlistEntry[] winlist)
         {
-            this.winlist = new Winlist();
+            Winlist = new Winlist();
             foreach (WinlistEntry winlist_entry in winlist)
             {
                 if (winlist_entry.IsTeam)
                 {
-                    this.winlist.AppendTeam(new Team(winlist_entry.Name, winlist_entry.Score));
+                    Winlist.AppendTeam(new Team(winlist_entry.Name, winlist_entry.Score));
                 }
                 else
                 {
@@ -339,7 +354,7 @@ namespace TetriEngine.Client
                         if (user.Name == winlist_entry.Name)
                         {
                             user.Score = winlist_entry.Score;
-                            this.winlist.AppendUser(user);
+                            Winlist.AppendUser(user);
                         }
                     }
                 }
@@ -404,7 +419,7 @@ namespace TetriEngine.Client
         private void GameChatReceivedEvent(string message)
         {
             chatMessagesActions.Add(new ChatMessageAction(serverUser, message, true));
-            OnGameChatReceived?.Invoke(message);
+            OnGameChatMessageReceived?.Invoke(message);
         }
 
         /// <summary>
@@ -423,13 +438,13 @@ namespace TetriEngine.Client
         /// <param name="classicMode">Classic mode</param>
         private void NewGameStartedEvent(uint startingHeight, uint startingLevel, uint linesPerLevel, uint levelIncrement, uint linesPerSpecial, uint specialsAdded, uint specialCapacity, IReadOnlyList<EBlock> blockFrequencies, IReadOnlyList<ESpecial> specialFrequencies, bool displayAverageLevels, bool classicMode)
         {
-            if (Level != null)
+            if (gameManager != null)
             {
                 OnEndGame?.Invoke();
             }
-            Level = new Level(startingHeight, startingLevel, linesPerLevel, levelIncrement, linesPerSpecial, specialsAdded, specialCapacity, blockFrequencies, specialFrequencies, displayAverageLevels, classicMode);
+            gameManager = new GameManager(user, new GameOptions(startingHeight, startingLevel, linesPerLevel, levelIncrement, linesPerSpecial, specialsAdded, specialCapacity, blockFrequencies, specialFrequencies, displayAverageLevels, classicMode));
             IsGameInProgress = true;
-            OnNewGameStarted?.Invoke(Level);
+            OnNewGameStarted?.Invoke(gameManager);
         }
 
         /// <summary>
@@ -455,10 +470,15 @@ namespace TetriEngine.Client
         {
             if (users.IsIDValid(userID))
             {
-                User user = users[userID];
-                uint old_level = user.Level;
-                user.Level = newLevel;
-                OnUserLevelUpdate?.Invoke(user, old_level, newLevel);
+                IHostUser user = users[userID] as IHostUser;
+                if (user != null)
+                {
+                    uint old_level = user.Level;
+                    if (user.SetLevel(newLevel))
+                    {
+                        OnUserLevelUpdate?.Invoke(user, old_level, newLevel);
+                    }
+                }
             }
         }
 
@@ -601,13 +621,16 @@ namespace TetriEngine.Client
         {
             if (users.IsIDValid(userID))
             {
-                User user = users[userID];
-                ECell[] old_cells = new ECell[Field.width * Field.height];
-                if (user.Field.CopyCellsTo(old_cells))
+                IHostUser user = users[userID] as IHostUser;
+                if (user != null)
                 {
-                    if (user.FieldInternal.UpdateCells(cells))
+                    ECell[] old_cells = new ECell[Field.width * Field.height];
+                    if (user.FieldInternal.CopyCellsTo(old_cells, false))
                     {
-                        OnUserFieldUpdate?.Invoke(user, old_cells, cells);
+                        if (user.FieldInternal.UpdateCells(cells))
+                        {
+                            OnUserFieldUpdate?.Invoke(user, old_cells, cells);
+                        }
                     }
                 }
             }
@@ -622,18 +645,21 @@ namespace TetriEngine.Client
         {
             if (users.IsIDValid((int)userID))
             {
-                User user = users[(int)userID];
-                ECell[] old_cells = new ECell[Field.width * Field.height];
-                if (user.Field.CopyCellsTo(old_cells))
+                IHostUser user = users[(int)userID] as IHostUser;
+                if (user != null)
                 {
-                    foreach (CellPosition cell_position in cellPositions)
+                    ECell[] old_cells = new ECell[Field.width * Field.height];
+                    if (user.FieldInternal.CopyCellsTo(old_cells, false))
                     {
-                        user.FieldInternal.SetCell(cell_position.Cell, (int)(cell_position.X), (int)(cell_position.Y));
-                    }
-                    ECell[] new_cells = new ECell[old_cells.Length];
-                    if (user.Field.CopyCellsTo(new_cells))
-                    {
-                        OnUserFieldUpdate?.Invoke(user, old_cells, new_cells);
+                        foreach (CellPosition cell_position in cellPositions)
+                        {
+                            user.FieldInternal.SetCell(cell_position.Cell, (int)(cell_position.X), (int)(cell_position.Y));
+                        }
+                        ECell[] new_cells = new ECell[old_cells.Length];
+                        if (user.FieldInternal.CopyCellsTo(new_cells, false))
+                        {
+                            OnUserFieldUpdate?.Invoke(user, old_cells, new_cells);
+                        }
                     }
                 }
             }
@@ -645,12 +671,12 @@ namespace TetriEngine.Client
         /// <param name="message">Message</param>
         public void SendChatMessage(string message)
         {
-            if ((message != null) && (clientConnection != null) && (User != null))
+            if ((message != null) && (clientConnection != null) && (user != null))
             {
                 string trimmed_message = message.Trim();
                 if (trimmed_message.Length > 0)
                 {
-                    clientConnection.SendChatMessageMessageAsync(User.ID, trimmed_message);
+                    clientConnection.SendChatMessageMessageAsync(user, trimmed_message);
                 }
             }
         }
@@ -661,12 +687,12 @@ namespace TetriEngine.Client
         /// <param name="action">Action</param>
         public void SendChatAction(string action)
         {
-            if ((action != null) && (clientConnection != null) && (User != null))
+            if ((action != null) && (clientConnection != null) && (user != null))
             {
                 string trimmed_action = action.Trim();
                 if (trimmed_action.Length > 0)
                 {
-                    clientConnection.SendChatActionMessageAsync(User.ID, trimmed_action);
+                    clientConnection.SendChatActionMessageAsync(user, trimmed_action);
                 }
             }
         }
@@ -677,12 +703,12 @@ namespace TetriEngine.Client
         /// <param name="message">Message</param>
         public void SendGameChatMessage(string message)
         {
-            if ((message != null) && (clientConnection != null) && (User != null))
+            if ((message != null) && (clientConnection != null) && (user != null))
             {
                 string trimmed_message = message.Trim();
                 if (trimmed_message.Length > 0)
                 {
-                    clientConnection.SendGameChatMessageMessageAsync(User.Name + " " + trimmed_message);
+                    clientConnection.SendGameChatMessageMessageAsync(user, trimmed_message);
                 }
             }
         }
@@ -692,9 +718,9 @@ namespace TetriEngine.Client
         /// </summary>
         public void StartGame()
         {
-            if ((clientConnection != null) && (User != null))
+            if ((clientConnection != null) && (user != null))
             {
-                clientConnection.SendStartGameMessageAsync(User.ID);
+                clientConnection.SendStartGameMessageAsync(user);
             }
         }
 
@@ -703,9 +729,9 @@ namespace TetriEngine.Client
         /// </summary>
         public void StopGame()
         {
-            if ((clientConnection != null) && (User != null))
+            if ((clientConnection != null) && (user != null))
             {
-                clientConnection.SendStopGameMessageAsync(User.ID);
+                clientConnection.SendStopGameMessageAsync(user);
             }
         }
 
@@ -714,9 +740,9 @@ namespace TetriEngine.Client
         /// </summary>
         public void PauseGame()
         {
-            if ((clientConnection != null) && (User != null))
+            if ((clientConnection != null) && (user != null))
             {
-                clientConnection.SendPauseGameMessageAsync(User.ID);
+                clientConnection.SendPauseRequestMessageAsync(user);
             }
         }
 
@@ -725,9 +751,9 @@ namespace TetriEngine.Client
         /// </summary>
         public void ResumeGame()
         {
-            if ((clientConnection != null) && (User != null))
+            if ((clientConnection != null) && (user != null))
             {
-                clientConnection.SendResumeGameMessageAsync(User.ID);
+                clientConnection.SendResumeRequestMessageAsync(user);
             }
         }
 

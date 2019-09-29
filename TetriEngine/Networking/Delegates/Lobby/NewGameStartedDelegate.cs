@@ -6,6 +6,6 @@ namespace TetriEngine.Networking.Lobby
     /// <summary>
     /// New game started delegate
     /// </summary>
-    /// <param name="level">Level</param>
-    public delegate void NewGameStartedDelegate(ILevel level);
+    /// <param name="gameManager">Game manager</param>
+    public delegate void NewGameStartedDelegate(IGameManager gameManager);
 }

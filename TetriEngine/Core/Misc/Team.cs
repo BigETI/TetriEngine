@@ -6,7 +6,7 @@ namespace TetriEngine
     /// <summary>
     /// Team class
     /// </summary>
-    internal class Team : ITeam
+    public class Team
     {
         /// <summary>
         /// Name

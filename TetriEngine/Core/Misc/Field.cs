@@ -36,6 +36,26 @@ namespace TetriEngine
         public int Height => cells.GetLength(1);
 
         /// <summary>
+        /// Selected block
+        /// </summary>
+        public EBlock SelectedBlock { get; internal set; }
+
+        /// <summary>
+        /// Selected block position X
+        /// </summary>
+        public uint SelectedBlockPositionX { get; internal set; }
+
+        /// <summary>
+        /// Selected block position Y
+        /// </summary>
+        public uint SelectedBlockPositionY { get; internal set; }
+
+        /// <summary>
+        /// Selected block rotation
+        /// </summary>
+        public EBlockRotation SelectedBlockRotation { get; internal set; }
+
+        /// <summary>
         /// Default constructor
         /// </summary>
         internal Field()
@@ -47,9 +67,21 @@ namespace TetriEngine
         /// Copy constructor
         /// </summary>
         /// <param name="field">Field</param>
-        internal Field(Field field)
+        internal Field(IField field)
         {
-            Array.Copy(field.cells, cells, cells.Length);
+            if (field == null)
+            {
+                cells = new ECell[width * height];
+            }
+            else
+            {
+                SelectedBlock = field.SelectedBlock;
+                SelectedBlockPositionX = field.SelectedBlockPositionX;
+                SelectedBlockPositionY = field.SelectedBlockPositionY;
+                SelectedBlockRotation = field.SelectedBlockRotation;
+                cells = new ECell[field.Width * field.Height];
+                field.CopyCellsTo(cells, false);
+            }
         }
 
         /// <summary>
@@ -57,8 +89,27 @@ namespace TetriEngine
         /// </summary>
         /// <param name="x">X position</param>
         /// <param name="y">Y position</param>
+        /// <param name="copySelectedBlock">Copy selected block</param>
         /// <returns>Tetri cell</returns>
-        public ECell GetCell(int x, int y) => (((x >= 0) && (x < cells.GetLength(0)) && (x >= 0) && (x < cells.GetLength(0))) ? cells[x + (y * width)] : ECell.Nothing);
+        public ECell GetCell(int x, int y, bool copySelectedBlock)
+        {
+            ECell ret = ECell.Nothing;
+            if ((x >= 0) && (x < cells.GetLength(0)) && (x >= 0) && (x < cells.GetLength(0)))
+            {
+                ret = cells[x + (y * width)];
+                if (copySelectedBlock)
+                {
+                    ECell[,] block_cells = GameManager.GetBlockCells(SelectedBlock, SelectedBlockRotation);
+                    int block_x = x - (int)SelectedBlockPositionX;
+                    int block_y = y - (int)SelectedBlockPositionY;
+                    if ((block_x >= 0) && (block_x < block_cells.GetLength(0)) && (block_y >= 0) && (block_y < block_cells.GetLength(1)))
+                    {
+                        ret = block_cells[block_x, block_y];
+                    }
+                }
+            }
+            return ret;
+        }
 
         /// <summary>
         /// Set cell
@@ -81,9 +132,10 @@ namespace TetriEngine
         /// <summary>
         /// Copy cells to
         /// </summary>
-        /// <param name="cells">Destination cells</param>
+        /// <param name="destinationCells">Destination cells</param>
+        /// <param name="copySelectedBlock">Copy selected block</param>
         /// <returns>"true" if successful, otherwise "false"</returns>
-        public bool CopyCellsTo(ECell[] destinationCells)
+        public bool CopyCellsTo(ECell[] destinationCells, bool copySelectedBlock)
         {
             bool ret = false;
             if (destinationCells != null)
@@ -91,6 +143,24 @@ namespace TetriEngine
                 if (destinationCells.Length == cells.Length)
                 {
                     Array.Copy(cells, destinationCells, cells.Length);
+                    if (copySelectedBlock)
+                    {
+                        ECell[,] block_cells = GameManager.GetBlockCells(SelectedBlock, SelectedBlockRotation);
+                        int x_origin = (int)SelectedBlockPositionX;
+                        int y_origin = (int)SelectedBlockPositionY;
+                        for (int x = 0, y, x_len = block_cells.GetLength(0), y_len = block_cells.GetLength(1); x < x_len; x++)
+                        {
+                            for (y = 0; y < y_len; y++)
+                            {
+                                int field_x = x + x_origin;
+                                int field_y = y + y_origin;
+                                if ((field_x >= 0) && (field_x < width) && (field_y >= 0) && (field_y < height))
+                                {
+                                    destinationCells[field_x + (field_y * width)] = block_cells[x, y];
+                                }
+                            }
+                        }
+                    }
                 }
             }
             return ret;

@@ -37,5 +37,10 @@ namespace TetriEngine
         /// Field
         /// </summary>
         IField Field { get; }
+
+        /// <summary>
+        /// Inventory
+        /// </summary>
+        IInventory Inventory { get; }
     }
 }

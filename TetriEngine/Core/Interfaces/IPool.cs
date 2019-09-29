@@ -39,5 +39,10 @@ namespace TetriEngine
         /// <param name="id">ID</param>
         /// <returns>"true" if successful, otherwise "false"</returns>
         bool Remove(int id);
+
+        /// <summary>
+        /// Clear pool
+        /// </summary>
+        void Clear();
     }
 }

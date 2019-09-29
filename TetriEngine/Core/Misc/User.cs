@@ -6,18 +6,8 @@ namespace TetriEngine
     /// <summary>
     /// User class
     /// </summary>
-    internal class User : IUser
+    internal class User : IHostUser
     {
-        /// <summary>
-        /// Name
-        /// </summary>
-        private string name = string.Empty;
-
-        /// <summary>
-        /// Team name
-        /// </summary>
-        private string teamName = string.Empty;
-
         /// <summary>
         /// ID
         /// </summary>
@@ -26,32 +16,12 @@ namespace TetriEngine
         /// <summary>
         /// Name
         /// </summary>
-        public string Name
-        {
-            get => name;
-            internal set
-            {
-                if (value != null)
-                {
-                    name = value;
-                }
-            }
-        }
+        public string Name { get; private set; }
 
         /// <summary>
         /// Team name
         /// </summary>
-        public string TeamName
-        {
-            get => teamName;
-            internal set
-            {
-                if (value != null)
-                {
-                    teamName = value;
-                }
-            }
-        }
+        public string TeamName { get; private set; } = string.Empty;
 
         /// <summary>
         /// Score
@@ -61,12 +31,17 @@ namespace TetriEngine
         /// <summary>
         /// Level
         /// </summary>
-        public uint Level { get; internal set; }
+        public uint Level { get; internal set; } = 1U;
 
         /// <summary>
         /// Field (internal)
         /// </summary>
-        internal Field FieldInternal { get; private set; }
+        public Field FieldInternal { get; private set; }
+
+        /// <summary>
+        /// Inventory internal
+        /// </summary>
+        public Inventory InventoryInternal { get; private set; }
 
         /// <summary>
         /// Field
@@ -74,16 +49,21 @@ namespace TetriEngine
         public IField Field => FieldInternal;
 
         /// <summary>
+        /// Inventory
+        /// </summary>
+        public IInventory Inventory => InventoryInternal;
+
+        /// <summary>
         /// Copy constructor
         /// </summary>
         /// <param name="user">User</param>
-        internal User(User user)
+        internal User(IUser user)
         {
             Name = user.Name;
             ID = user.ID;
             TeamName = user.TeamName;
             Score = user.Score;
-            FieldInternal = new Field(user.FieldInternal);
+            FieldInternal = new Field(user.Field);
         }
 
         /// <summary>
@@ -96,6 +76,52 @@ namespace TetriEngine
             Name = name;
             ID = id;
             FieldInternal = new Field();
+            InventoryInternal = new Inventory();
+        }
+
+        /// <summary>
+        /// Set team name
+        /// </summary>
+        /// <param name="teamName">Team name</param>
+        /// <returns>"true" if successful, otherwise "false"</returns>
+        public bool SetTeamName(string teamName)
+        {
+            bool ret = (teamName != null);
+            if (ret)
+            {
+                TeamName = teamName.Trim();
+            }
+            return ret;
+        }
+
+        /// <summary>
+        /// Set level
+        /// </summary>
+        /// <param name="level">Level</param>
+        /// <returns>"true" if successful, otherwise "false"</returns>
+        public bool SetLevel(uint level)
+        {
+            bool ret = (level > 0U);
+            if (ret)
+            {
+                Level = level;
+            }
+            return ret;
+        }
+
+        /// <summary>
+        /// Set score
+        /// </summary>
+        /// <param name="score">Score</param>
+        /// <returns>"true" if successful, otherwise "false"</returns>
+        public bool SetScore(long score)
+        {
+            bool ret = (score >= 0L);
+            if (ret)
+            {
+                Score = score;
+            }
+            return ret;
         }
     }
 }

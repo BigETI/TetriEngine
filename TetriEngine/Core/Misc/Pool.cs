@@ -199,6 +199,16 @@ namespace TetriEngine
         }
 
         /// <summary>
+        /// Clear
+        /// </summary>
+        public void Clear()
+        {
+            entries.Clear();
+            Count = 0;
+            lowestAvailableIndex = 0;
+        }
+
+        /// <summary>
         /// Is ID valid
         /// </summary>
         /// <param name="id">ID</param>
@@ -221,11 +231,7 @@ namespace TetriEngine
         /// Get enumerator
         /// </summary>
         /// <returns>Enumerator</returns>
-        public IEnumerator<T> GetEnumerator()
-        {
-            // TODO
-            throw new NotImplementedException();
-        }
+        public IEnumerator<T> GetEnumerator() => new PoolEnumerator<T>(this);
 
         /// <summary>
         /// Get enumerator

@@ -5,7 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Client\Delegates\" />
+    <Compile Remove="Client\Delegates\**" />
+    <EmbeddedResource Remove="Client\Delegates\**" />
+    <None Remove="Client\Delegates\**" />
   </ItemGroup>
 
 </Project>

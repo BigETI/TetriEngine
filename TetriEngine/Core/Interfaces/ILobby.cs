@@ -39,52 +39,19 @@ namespace TetriEngine
         IReadOnlyList<ChatMessageAction> ChatMessagesActions { get; }
 
         /// <summary>
-        /// Level
+        /// Game manager
         /// </summary>
-        ILevel Level { get; }
+        IGameManager GameManager { get; }
+
+        /// <summary>
+        /// Users
+        /// </summary>
+        IReadOnlyPool<IUser> Users { get; }
 
         /// <summary>
         /// Winlist
         /// </summary>
-        IWinlist Winlist { get; }
-
-        /// <summary>
-        /// Send chat message
-        /// </summary>
-        /// <param name="message">Message</param>
-        void SendChatMessage(string message);
-
-        /// <summary>
-        /// Send chat action
-        /// </summary>
-        /// <param name="action">Action</param>
-        void SendChatAction(string action);
-
-        /// <summary>
-        /// Send game chat message
-        /// </summary>
-        /// <param name="message">Message</param>
-        void SendGameChatMessage(string message);
-
-        /// <summary>
-        /// Start game
-        /// </summary>
-        void StartGame();
-
-        /// <summary>
-        /// Stop game
-        /// </summary>
-        void StopGame();
-
-        /// <summary>
-        /// Pause game
-        /// </summary>
-        void PauseGame();
-
-        /// <summary>
-        /// Resume game
-        /// </summary>
-        void ResumeGame();
+        Winlist Winlist { get; }
 
         /// <summary>
         /// Close lobby
@@ -107,24 +74,9 @@ namespace TetriEngine
         event UserTeamNameChangedDelegate OnUserTeamNameChanged;
 
         /// <summary>
-        /// On winlist received
-        /// </summary>
-        event WinlistReceivedDelegate OnWinlistReceived;
-
-        /// <summary>
-        /// On server chat message received event
-        /// </summary>
-        event ServerChatMessageReceivedDelegate OnServerChatMessageReceived;
-
-        /// <summary>
         /// On user chat message received event
         /// </summary>
         event UserChatMessageReceivedDelegate OnUserChatMessageReceived;
-
-        /// <summary>
-        /// On server chat action received event
-        /// </summary>
-        event ServerChatActionReceivedDelegate OnServerChatActionReceived;
 
         /// <summary>
         /// On user chat action received event
@@ -134,22 +86,12 @@ namespace TetriEngine
         /// <summary>
         /// On game chat message received event
         /// </summary>
-        event GameChatReceivedDelegate OnGameChatReceived;
+        event GameChatMessageReceivedDelegate OnGameChatMessageReceived;
 
         /// <summary>
         /// On new game started event
         /// </summary>
         event NewGameStartedDelegate OnNewGameStarted;
-
-        /// <summary>
-        /// On game is already in progress event
-        /// </summary>
-        event GameIsAlreadyInProgressDelegate OnGameIsAlreadyInProgress;
-
-        /// <summary>
-        /// On request client information event
-        /// </summary>
-        event RequestClientInformationDelegate OnRequestClientInformation;
 
         /// <summary>
         /// On user level update event
@@ -205,11 +147,6 @@ namespace TetriEngine
         /// On end game event
         /// </summary>
         event EndGameDelegate OnEndGame;
-
-        /// <summary>
-        /// On connection denied event
-        /// </summary>
-        event ConnectionDeniedDelegate OnConnectionDenied;
 
         /// <summary>
         /// On heart beat event

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using TetriEngine.Networking;
 
 /// <summary>
@@ -15,12 +14,15 @@ namespace TetriEngine.Client
         /// <summary>
         /// Create local lobby
         /// </summary>
-        /// <returns></returns>
-        public static ILobby CreateLocalLobby()
-        {
-            // TODO
-            throw new NotImplementedException();
-        }
+        /// <param name="maxUsers">Maximal amount of users</param>
+        /// <returns>Lobby</returns>
+        public static ILobby CreateLocalLobby(uint maxUsers) => new LocalLobby(maxUsers);
+
+        /// <summary>
+        /// Create local lobby
+        /// </summary>
+        /// <returns>Lobby</returns>
+        public static ILobby CreateLocalLobby() => CreateLocalLobby(uint.MaxValue);
 
         /// <summary>
         /// Join multiplayer lobby (asynchronous)

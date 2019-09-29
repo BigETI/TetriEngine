@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using TetriEngine.Client;
@@ -146,32 +145,13 @@ namespace TetriEngine.Networking
         /// <param name="port">Port (if 0, default TetriNET port used)</param>
         /// <param name="maxUsers">Maximal amount of users (if 0, default TetriNET maximum of users is used)</param>
         /// <returns>Server connection task</returns>
-        internal static Task<ServerConnection> CreateListenerAsync(EProtocol protocol, ushort port, uint maxUsers)
+        internal static Task<ServerListener> CreateListenerAsync(EProtocol protocol, ushort port, uint maxUsers)
         {
-            //ushort p = ((port > 0) ? port : defaultPort);
-            //uint max_users = ((maxUsers > 0) ? maxUsers : defaultMaxUsers);
-            //Task<ServerConnection> ret = new Task<ServerConnection>(() =>
-            //{
-            //    ServerConnection server_connection = null;
-            //    TcpListener tcp_listener = TcpListener.Create(p);
-            //    tcp_listener.Start((int)max_users);
-            //    AddressFamily used_address_family = tcp_listener.LocalEndpoint.AddressFamily;
-            //    if (used_address_family == AddressFamily.InterNetwork)
-            //    {
-            //        server_connection = new ServerConnection(tcp_listener, protocol);
-            //    }
-            //    else
-            //    {
-            //        tcp_listener.Stop();
-            //        throw new UnsupportedAddressFamilyException(used_address_family);
-            //    }
-            //    return server_connection;
-            //});
-            //ret.Start();
-            //return ret;
-
-            // TODO
-            throw new NotImplementedException();
+            ushort p = ((port > 0) ? port : defaultPort);
+            uint max_users = ((maxUsers > 0) ? maxUsers : defaultMaxUsers);
+            Task<ServerListener> ret = new Task<ServerListener>(() => ServerListener.Create(protocol, p, max_users));
+            ret.Start();
+            return ret;
         }
     }
 }

@@ -8,7 +8,7 @@ namespace TetriEngine
     /// <summary>
     /// Winlist class
     /// </summary>
-    internal class Winlist : IWinlist
+    public class Winlist
     {
         /// <summary>
         /// Users
@@ -18,7 +18,7 @@ namespace TetriEngine
         /// <summary>
         /// Teams
         /// </summary>
-        private List<ITeam> teams = new List<ITeam>();
+        private List<Team> teams = new List<Team>();
 
         /// <summary>
         /// Users
@@ -28,7 +28,7 @@ namespace TetriEngine
         /// <summary>
         /// Teams
         /// </summary>
-        public IReadOnlyList<ITeam> Teams => teams;
+        public IReadOnlyList<Team> Teams => teams;
 
         /// <summary>
         /// Default constructor
@@ -51,7 +51,7 @@ namespace TetriEngine
         /// Append team
         /// </summary>
         /// <param name="team">Team</param>
-        internal void AppendTeam(ITeam team)
+        internal void AppendTeam(Team team)
         {
             teams.Add(team);
         }
