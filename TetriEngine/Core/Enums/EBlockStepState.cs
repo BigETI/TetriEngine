@@ -14,11 +14,6 @@ namespace TetriEngine
         Nothing,
 
         /// <summary>
-        /// Wait
-        /// </summary>
-        Wait,
-
-        /// <summary>
         /// Move
         /// </summary>
         Move,

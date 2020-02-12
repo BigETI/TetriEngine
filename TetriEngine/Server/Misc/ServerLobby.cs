@@ -310,8 +310,40 @@ namespace TetriEngine.Server
             {
                 gameManager = new GameManager(user, new GameOptions(startingHeight, startingLevel, linesPerLevel, levelIncrement, linesPerSpecial, specialsAdded, specialCapacity, blockFrequencies, specialFrequencies, displayAverageLevel, classicMode));
                 OnNewGameStarted?.Invoke(gameManager);
+                gameManager.OnBlockMoved += BlockMovedEvent;
+                gameManager.OnBlockLanded += LandBlockEvent;
+                gameManager.OnNewBlockSelected += NewBlockSelectedEvent;
+                gameManager.OnGameLost += LooseGameEvent;
             }
             return gameManager;
+        }
+
+        /// <summary>
+        /// Move block 
+        /// </summary>
+        /// <param name="block"></param>
+        private void BlockMovedEvent(EBlock block)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        private void LandBlockEvent(EBlock block)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        private void NewBlockSelectedEvent(EBlock block)
+        {
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        private void LooseGameEvent(EBlock block)
+        {
+            // TODO
+            throw new NotImplementedException();
         }
 
         // TODO
@@ -323,6 +355,10 @@ namespace TetriEngine.Server
         /// <returns>Game manager</returns>
         public IGameManager StartGame() => StartGame(0U, 1U, 1U, 1U, 1U, 1U, 8U, Array.Empty<EBlock>(), Array.Empty<ESpecial>(), false, false);
 
+        /// <summary>
+        /// Stop game
+        /// </summary>
+        /// <returns>"true" if successful, otherwise "false"</returns>
         public bool StopGame()
         {
             bool ret = (gameManager != null);

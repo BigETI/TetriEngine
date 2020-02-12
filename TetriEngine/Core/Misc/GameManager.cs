@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 /// <summary>
 /// TetriEngine namespace
@@ -184,6 +185,21 @@ namespace TetriEngine
         private DateTime lastBlockStepTime;
 
         /// <summary>
+        /// Remaining time
+        /// </summary>
+        private double remainingTime = default;
+
+        /// <summary>
+        /// Game manager thread
+        /// </summary>
+        private Thread gameManagerThread;
+
+        /// <summary>
+        /// Keep running
+        /// </summary>
+        private bool keepRunning = true;
+
+        /// <summary>
         /// Field
         /// </summary>
         public IUser User => user;
@@ -212,6 +228,11 @@ namespace TetriEngine
         /// Is paused
         /// </summary>
         public bool IsPaused { get; internal set; }
+
+        /// <summary>
+        /// Level
+        /// </summary>
+        public uint Level { get; private set; }
 
         /// <summary>
         /// Winlist
@@ -246,6 +267,27 @@ namespace TetriEngine
         }
 
         /// <summary>
+        /// On block moved
+        /// </summary>
+        public event MoveBlockDelegate OnBlockMoved;
+
+        /// <summary>
+        /// On block landed
+        /// </summary>
+        public event LandBlockDelegate OnBlockLanded;
+
+        /// <summary>
+        /// On new block selected
+        /// </summary>
+        public event NewBlockSelectedDelegate OnNewBlockSelected;
+
+        /// <summary>
+        /// On game lost
+        /// </summary>
+        public event LooseGameDelegate OnGameLost;
+
+
+        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="user">User</param>
@@ -254,7 +296,39 @@ namespace TetriEngine
         {
             this.user = user;
             GameOptions = gameOptions;
+            Level = gameOptions.StartingLevel;
             lastBlockStepTime = DateTime.Now;
+            gameManagerThread = new Thread((that) =>
+            {
+                if (that is GameManager)
+                {
+                    GameManager game_manager = (GameManager)that;
+                    while (game_manager.keepRunning)
+                    {
+                        EBlock block;
+                        EBlockStepState step_state = BlockStep(out block);
+                        switch (step_state)
+                        {
+                            case EBlockStepState.Nothing:
+                                break;
+                            case EBlockStepState.Move:
+                                OnBlockMoved?.Invoke(block);
+                                break;
+                            case EBlockStepState.Land:
+                                OnBlockLanded?.Invoke(block);
+                                break;
+                            case EBlockStepState.SelectNew:
+                                OnNewBlockSelected?.Invoke(block);
+                                break;
+                            case EBlockStepState.Loose:
+                                OnGameLost?.Invoke(block);
+                                break;
+                        }
+                        Thread.Sleep(2);
+                    }
+                }
+            });
+            gameManagerThread.Start(this);
         }
 
         /// <summary>
@@ -497,21 +571,22 @@ namespace TetriEngine
         /// <summary>
         /// Block step
         /// </summary>
+        /// <param name="block">Block</param>
         /// <returns>"true" if block has landed, otherwise "false"</returns>
-        internal EBlockStepState BlockStep()
+        internal EBlockStepState BlockStep(out EBlock block)
         {
-            EBlockStepState ret = ((lastBlockStepState == EBlockStepState.Loose) ? EBlockStepState.Loose : EBlockStepState.Wait);
+            EBlockStepState ret = ((lastBlockStepState == EBlockStepState.Loose) ? EBlockStepState.Loose : EBlockStepState.Nothing);
+            block = user.Field.SelectedBlock;
             if ((!IsPaused) && (lastBlockStepState != EBlockStepState.Loose))
             {
                 DateTime now = DateTime.Now;
-                double seconds = (now - lastBlockStepTime).TotalSeconds;
-                while (seconds >= 1.0)
+                double milliseconds = (now - lastBlockStepTime).TotalMilliseconds + remainingTime;
+                double step_time = ((Level <= 100) ? (1005 - (Level * 10)) : 5);
+                if (milliseconds >= step_time)
                 {
-                    seconds -= 1.0;
                     switch (lastBlockStepState)
                     {
                         case EBlockStepState.Nothing:
-                        case EBlockStepState.Wait:
                         case EBlockStepState.Move:
                             if (MoveBlockDown())
                             {
@@ -537,6 +612,8 @@ namespace TetriEngine
                             ret = lastBlockStepState;
                             break;
                     }
+                    lastBlockStepTime = now;
+                    remainingTime = milliseconds - step_time;
                 }
             }
             return ret;
@@ -556,6 +633,19 @@ namespace TetriEngine
                 chatMessages.Add("<" + internal_user.Name + ((internal_user.TeamName.Length > 0) ? (" ** " + internal_user.TeamName) : "") + "> " + message);
             }
             return ret;
+        }
+
+        /// <summary>
+        /// Dispose
+        /// </summary>
+        public void Dispose()
+        {
+            if (gameManagerThread != null)
+            {
+                keepRunning = false;
+                gameManagerThread.Join();
+                gameManagerThread = null;
+            }
         }
     }
 }

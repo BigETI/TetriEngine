@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// TetriEngine namespace
@@ -8,7 +9,7 @@ namespace TetriEngine
     /// <summary>
     /// Game manager interface
     /// </summary>
-    public interface IGameManager
+    public interface IGameManager : IDisposable
     {
         /// <summary>
         /// Field
@@ -44,6 +45,26 @@ namespace TetriEngine
         /// Winlist
         /// </summary>
         Winlist Winlist { get; }
+
+        /// <summary>
+        /// On move block
+        /// </summary>
+        event MoveBlockDelegate OnBlockMoved;
+
+        /// <summary>
+        /// On land block
+        /// </summary>
+        event LandBlockDelegate OnBlockLanded;
+
+        /// <summary>
+        /// On new block selected
+        /// </summary>
+        event NewBlockSelectedDelegate OnNewBlockSelected;
+
+        /// <summary>
+        /// On loose game
+        /// </summary>
+        event LooseGameDelegate OnGameLost;
 
         /// <summary>
         /// Drop block
